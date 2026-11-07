@@ -262,6 +262,7 @@ nav.tabs button[aria-current=page]{color:var(--amber)}
 
     <section style="display:flex;flex-direction:column;gap:10px">
       <div class="blockhead"><div><div class="eyebrow">Required for your streak</div><h2>Daily mobility</h2></div><div class="count" id="coreCount">0<span>/9</span></div></div>
+      <div class="small" id="phaseLine" style="color:var(--amber);font-family:var(--label);font-weight:600;letter-spacing:.08em;text-transform:uppercase"></div>
       <div class="bar grass"><i id="coreFill" style="width:0%"></i></div>
       <div class="list" id="coreList"></div>
     </section>
@@ -290,7 +291,9 @@ nav.tabs button[aria-current=page]{color:var(--amber)}
       <div class="eyebrow">How scoring works</div>
       <ul class="steps">
         <li>10 XP per mobility exercise, 15 per bonus drill.</li>
-        <li>+50 XP for finishing all 9 mobility exercises; +30 for the full bonus block.</li>
+        <li>+50 XP for finishing every mobility exercise; +30 for the full bonus block.</li>
+        <li>Every 14 full mobility days moves you up a phase (Foundation, Build, Load, Game Ready): more reps, longer holds, harder versions, and new exercises at Phases 2 and 3. Missed days don't count toward it.</li>
+        <li>The mirror drills change by day of the week to cover each part of the delivery from the guides.</li>
         <li>Your streak adds 5% XP per day, up to +50%.</li>
         <li>Finish 7 days in a row to earn a rain delay. A rain delay covers one missed day so the streak survives. You can hold 2.</li>
         <li>Mobility velo is a game score that climbs with XP. It is not a radar reading of your fastball.</li>
@@ -406,7 +409,7 @@ const MIRROR = [
   steps:["Stride out slowly and freeze the moment the front foot lands.","Hips are starting to open; the chest is still closed to the target.","Throwing elbow is bent about 90°."],
   why:"Vol. 2's 3X MER-Timing starts with landing at front foot strike with the throwing elbow around 90°. The mirror tells you if you're there."},
  {id:"finish", name:"Finish & recoil reps", dose:"5 reps", tag:"3X Finish",
-  steps:["Dry-throw at half speed.","Keep rotating toward the glove side and let the throwing arm cross the body.","The back of the throwing shoulder should face the target. Don't kick the back leg up; let it come over."],
+  steps:["Dry-throw at half speed.","Keep rotating toward the glove side and let the throwing arm cross the body.","The back of the throwing shoulder should face the target, and pull the glove in behind you. Let the drive leg flop up behind you."],
   why:"Vol. 2: you can't add velocity after release, but a full finish takes the load off the shoulder blade."}
 ];
 const RECOVERY = [
@@ -419,7 +422,79 @@ const RECOVERY = [
  {id:"refuel", name:"Water + protein within an hour", dose:"Checkbox", tag:"Recovery",
   steps:["A big glass of water.","A protein-rich meal or snack: milk, eggs, chicken, yogurt."], why:"Both guides point to rest, recovery and nutrition as part of protecting a throwing arm."}
 ];
-const ALL = Object.fromEntries([...CORE,...MIRROR,...RECOVERY].map(e=>[e.id,e]));
+/* ---------- Added drills, phases and weekly mirror rotation ---------- */
+const EXTRA = [
+ {id:"ham", name:"Front-leg hamstring sweeps", dose:"8 each side", tag:"3X Stabilization", from:2,
+  steps:["Step the front heel out a half-step, toes up, knee soft.","Push the hips straight back and hinge, keeping the back flat.","Sweep both hands down the front leg toward the floor, then stand tall and squeeze the glutes."],
+  why:"In Vol. 1's Stabilization phase the front leg firms up and the trunk bends forward over it. Tight hamstrings stop the trunk short and push the stress up into the arm."},
+ {id:"lat", name:"Bench prayer lat stretch", dose:"2 × 30 sec", tag:"Chest Thrust", from:3, secs:60, sides:true, sideWord:"Rest, then go again",
+  steps:["Kneel facing a couch or bench and rest your elbows on the edge, hands together.","Sit the hips back toward your heels.","Let the chest sink toward the floor and breathe into the sides of your ribs."],
+  why:"Tight lats pull the chest out of extension and limit the chest thrust and layback the guides describe. This frees them up."}
+];
+const MIRROR_NEW = [
+ {id:"glove", name:"3X Glove Position sets", dose:"5 reps", tag:"3X Glove Position",
+  steps:["Come set with the hands together in the middle of the body or slightly toward the throwing side.","Hands sit just above the height your knee reaches in the leg lift, close to the body, elbows down.","Lift the leg and check that the hands don't move up and down with it."],
+  why:"Vol. 2: setting the hands above the peak of the lift and keeping the elbows down prevents an early or aggressive hand break and keeps the arm from cocking too soon."},
+ {id:"stance", name:"Stretch stance check", dose:"5 reps", tag:"3X Stance",
+  steps:["Feet at or a little past shoulder width, front foot closed to the target.","Hips centered between the feet, drive knee unlocked and inside the foot.","Lift the leg without rocking the weight back toward the rubber."],
+  why:"Vol. 2's 3X Stance: a wider base puts the drive leg in a more linear position so you move into the load faster and stride longer."},
+ {id:"handbreak", name:"Hand break timing reps", dose:"5 reps", tag:"Hand Break-Timing",
+  steps:["Lift into your balance point.","Wait until the lift leg starts moving toward the target.","Then let the hands separate, relaxed, with the elbows leading. No snap."],
+  why:"Vol. 2: high-velocity pitchers break the hands after the peak of the lift, as the leg starts down the mound. The arms ride along while the legs build power."},
+ {id:"weight", name:"Weight shift reps", dose:"5 slow reps", tag:"3X Weight Shift",
+  steps:["In the lift, weight on the power pads (balls of the foot) and heel.","Into the load, keep it there but sink more into the heel.","As the hips start toward the target, roll the weight to the inside of the drive foot."],
+  why:"This is Vol. 2's 3X Weight Shift sequence. Getting the weight to the inside of the foot sets up the leg drive."},
+ {id:"hiprot", name:"Closed-hip stride reps", dose:"5 reps", tag:"3X Hip Rotation",
+  steps:["Coil the hips slightly closed during the lift.","Stride out slowly and keep the front side closed.","Open the front foot only just before it lands, then turn the hips."],
+  why:"Vol. 2: keep the front side closed through the stride, open just before front foot strike, then power the hip rotation. Opening early leaks energy."},
+ {id:"armpath", name:"Arm path freezes", dose:"5 reps", tag:"3X Arm Path",
+  steps:["Break the hands with the elbows leading.","Arrive in the cocked position right as the front foot lands.","Freeze: elbow bent, arm not yet laid back, elbow slightly behind the back."],
+  why:"Vol. 2's 3X Arm Path: cock the arm at the exact moment of front foot strike, flexed but not yet externally rotated."},
+ {id:"landing", name:"Front-foot landing reps", dose:"5 reps", tag:"3X Foot Contact",
+  steps:["Stride with the front toes pointing slightly up.","Heel touches first, then the weight moves quickly into the ball of the foot.","Firm the front leg right away. The knee should not keep bending."],
+  why:"Vol. 2's Foot Contact and 2X GRF-Timing: a fast, firm front leg at landing is what lets the hips rotate explosively."},
+ {id:"headpath", name:"Head path check", dose:"5 reps", tag:"3X Head Path",
+  steps:["In the set, head stays behind the hips.","In the stride, head behind the belt buckle and tilted slightly to the glove side.","At landing, head still behind the hips. Film or watch the mirror from the side."],
+  why:"Vol. 2's 3X Head Path sequence. A head that drifts forward early drags the shoulders open."}
+];
+const SHORT_X = {ham:"Hamstring sweeps", lat:"Lat stretch"};
+const ROT = [ // Sunday..Saturday
+  {name:"Timing", ids:["handbreak","armpath","ffs","finish"]},
+  {name:"Set & start", ids:["glove","stance","lift","handbreak"]},
+  {name:"Lower half", ids:["weight","load","hiprot","landing"]},
+  {name:"Upper half", ids:["armpath","ffs","headpath","finish"]},
+  {name:"Landing", ids:["stance","lift","landing","finish"]},
+  {name:"Full delivery", ids:["lift","load","ffs","finish"]},
+  {name:"Hips & head", ids:["glove","weight","hiprot","headpath"]}
+];
+const PHASES = ["Foundation","Build","Load","Game Ready"];
+const PROG = {
+  ankle:[null,{dose:"12 each side, 3-sec hold at the wall"},{dose:"12 each side, 3-sec hold, foot a half-step farther back"},{name:"Weighted ankle rocks",dose:"12 each side, dumbbell resting on the knee",add:"Rest a light dumbbell (10–20 lb) on top of the knee to push it further."}],
+  ninety:[null,{dose:"10 each side, 3-sec lean each side"},{name:"90/90 lift-offs",dose:"8 each side",add:"In each position, lift the back knee off the floor for a second without leaning."},{name:"90/90 lift-offs",dose:"10 each side, 3-sec lift"}],
+  cossack:[null,{dose:"8 each side, 2-sec pause at the bottom"},{name:"Goblet Cossack squats",dose:"8 each side, light weight at the chest",add:"Hold a light dumbbell or kettlebell at the chest."},{name:"Goblet Cossack squats",dose:"10 each side, 3-sec pause"}],
+  flexor:[null,{dose:"40 sec each side",secs:80},{dose:"45 sec each side + rotate toward the front leg",secs:90,add:"At the top of the reach, rotate the chest toward the front knee."},{dose:"60 sec each side + rotation",secs:120}],
+  books:[null,{dose:"10 each side, 3-sec hold open"},{dose:"10 each side, 5-sec hold open"},{dose:"12 each side, 5-sec hold open"}],
+  tspine:[null,{dose:"12 reps, arms overhead",add:"Reach the arms straight overhead instead of hands behind the head."},{dose:"12 reps, arms overhead, 3-sec hold"},{dose:"15 reps, arms overhead, 3-sec hold"}],
+  wallslide:[null,{dose:"12 reps, 3-sec lift-off"},{dose:"15 reps, 3-sec lift-off"},{dose:"15 reps, 5-sec lift-off"}],
+  crossbody:[null,null,null,null],
+  forearm:[null,{dose:"2 × 30 sec, throwing arm",secs:60},{dose:"2 × 30 sec, throwing arm",secs:60},{dose:"2 × 30 sec, throwing arm",secs:60}],
+  ham:[null,null,{dose:"10 each side"},{dose:"12 each side, 2-sec hold at the bottom"}],
+  lat:[null,null,null,{dose:"2 × 45 sec",secs:90}],
+  lift:[{dose:"3 × 5 sec hold",secs:15},{dose:"3 × 8 sec hold",secs:24},{dose:"4 × 10 sec hold",secs:40},{dose:"4 × 10 sec hold, eyes closed on the last",secs:40}]
+};
+const MDOSE = ["5 reps","6 reps, 2-sec freeze at the key spot","8 reps, 3-sec freeze","10 reps, 3-sec freeze"];
+function exAt(x, ph){
+  const o = Object.assign({}, x); const p = PROG[x.id];
+  if (p) { for (let i=0;i<ph;i++) if (p[i]) Object.assign(o, p[i]); }
+  else if (MIRROR_IDS.has(x.id)) o.dose = MDOSE[ph-1].replace("5 reps", x.dose);
+  if (o.add) o.steps = [...x.steps, o.add];
+  return o;
+}
+const MIRROR_IDS = new Set([...MIRROR,...MIRROR_NEW].map(e=>e.id));
+const ALL = Object.fromEntries([...CORE,...EXTRA,...MIRROR,...MIRROR_NEW,...RECOVERY].map(e=>[e.id,e]));
+const coreFor = ph => [...CORE, ...EXTRA.filter(x => ph >= x.from)];
+const mirrorFor = k => ROT[parseKey(k).getDay()].ids.map(id => ALL[id]);
+const phaseFromDays = n => Math.min(4, 1 + Math.floor(n/14));
 
 const TIERS = [[100,"Flamethrower"],[95,"Ace"],[88,"Pro"],[80,"College"],[70,"High School"],[0,"Little League"]];
 const XP_K = 12;
@@ -464,7 +539,7 @@ function persist(){
   if (dbDoc) { clearTimeout(dbTimer); dbTimer = setTimeout(() => { dbDoc.set({payload: JSON.stringify(state), t: Date.now()}).catch(()=>{}); }, 800); }
 }
 function entry(k, create){
-  if (!state.history[k] && create) state.history[k] = {done:[], pitched:false};
+  if (!state.history[k] && create) state.history[k] = {done:[], pitched:false, ph: k===todayKey() ? todayPhase() : 1, ms: mirrorFor(k).map(x=>x.id)};
   return state.history[k];
 }
 
@@ -479,7 +554,7 @@ function merge(a, b){
     if (!x || !y) { out.history[k] = JSON.parse(JSON.stringify(x||y)); return; }
     const done = Array.from(new Set([...(x.done||[]), ...(y.done||[])]));
     const t = [x.t,y.t].filter(Boolean).sort()[0];
-    out.history[k] = {done, pitched: !!(x.pitched||y.pitched)}; if (t) out.history[k].t = t;
+    out.history[k] = {done, pitched: !!(x.pitched||y.pitched)}; if (t) out.history[k].t = t; const ph = x.ph||y.ph, ms = x.ms||y.ms; if (ph) out.history[k].ph = ph; if (ms) out.history[k].ms = ms;
   });
   const ra = a.rewardsT||0, rb = b.rewardsT||0;
   out.rewards = JSON.parse(JSON.stringify(rb > ra ? (b.rewards||[]) : (a.rewards||[])));
@@ -490,13 +565,25 @@ function merge(a, b){
 }
 
 /* ---------- Scoring (all derived from history) ---------- */
-const coreDone = e => e ? CORE.filter(x => e.done.includes(x.id)).length : 0;
-const bonusSet = e => (e && e.pitched) ? RECOVERY : MIRROR;
+const coreSet = e => coreFor((e && e.ph) || 1);
+const coreDone = e => e ? coreSet(e).filter(x => e.done.includes(x.id)).length : 0;
+const bonusSet = e => (e && e.pitched) ? RECOVERY : (e && e.ms ? e.ms.map(id => ALL[id]) : MIRROR);
 const bonusDone = e => e ? bonusSet(e).filter(x => e.done.includes(x.id)).length : 0;
-const isFull = e => coreDone(e) === CORE.length;
+const isFull = e => !!e && coreDone(e) === coreSet(e).length;
 const isCG = e => isFull(e) && bonusDone(e) === bonusSet(e).length;
 const dayBase = e => coreDone(e)*10 + bonusDone(e)*15 + (isFull(e)?50:0) + (bonusDone(e)===bonusSet(e).length?30:0);
 
+function todayPhase(){
+  const tk = todayKey(), e = state.history[tk];
+  if (e && e.ph) return e.ph;
+  let n = 0; for (const k in state.history) if (k < tk && isFull(state.history[k])) n++;
+  return phaseFromDays(n);
+}
+function phaseInfo(){
+  const tk = todayKey(); let n = 0; for (const k in state.history) if (k < tk && isFull(state.history[k])) n++;
+  const ph = todayPhase(); return {ph, name: PHASES[ph-1], next: ph < 4 ? 14*ph - n : 0};
+}
+const cur = id => exAt(ALL[id], todayPhase());
 function compute(){
   const tk = todayKey();
   const keys = Object.keys(state.history).filter(k => (state.history[k].done||[]).length).sort();
@@ -594,15 +681,18 @@ function renderToday(){
   $("setup").hidden = !!state.profile.name;
   const pitched = !!(e && e.pitched);
   $("pitchedSwitch").setAttribute("aria-checked", pitched);
-  $("coreList").innerHTML = CORE.map(x=>exHTML(x,e)).join("");
-  const set = pitched ? RECOVERY : MIRROR;
-  $("bonusList").innerHTML = set.map(x=>exHTML(x,e)).join("");
+  const ph = todayPhase(), coreList = e ? coreSet(e) : coreFor(ph);
+  $("coreList").innerHTML = coreList.map(x=>exHTML(exAt(x,ph),e)).join("");
+  const set = e ? bonusSet(e) : (pitched ? RECOVERY : mirrorFor(tk));
+  $("bonusList").innerHTML = set.map(x=>exHTML(exAt(x,ph),e)).join("");
+  const pi = phaseInfo();
+  $("phaseLine").textContent = `Phase ${pi.ph} · ${pi.name}` + (pi.next ? ` · ${pi.next} more full day${pi.next>1?"s":""} to Phase ${pi.ph+1}` : " · top phase");
   $("bonusTitle").textContent = pitched ? "Recovery" : "Mirror work";
-  $("bonusEyebrow").textContent = pitched ? "Bonus XP · you threw today" : "Bonus XP · no ball, use a mirror";
+  $("bonusEyebrow").textContent = pitched ? "Bonus XP · you threw today" : `Bonus XP · ${ROT[new Date().getDay()].name} day · no ball, use a mirror`;
   const c = coreDone(e), b = bonusDone(e);
-  $("coreCount").innerHTML = c + "<span>/" + CORE.length + "</span>";
+  $("coreCount").innerHTML = c + "<span>/" + coreList.length + "</span>";
   $("bonusCount").innerHTML = b + "<span>/" + set.length + "</span>";
-  $("coreFill").style.width = (c/CORE.length*100) + "%";
+  $("coreFill").style.width = (c/coreList.length*100) + "%";
 }
 
 function dayClass(k, r){
@@ -688,6 +778,18 @@ const ART = {
   load:[["From the lift",MIRROR_POSE.lift],["Load: knee flexed",MIRROR_POSE.load+AR(62,62,40,62)]],
   ffs:[["Load",MIRROR_POSE.load],["Foot lands: freeze",MIRROR_POSE.ffs+AR(58,100,34,100)]],
   finish:[["Foot strike",MIRROR_POSE.ffs],["Finish across",MIRROR_POSE.fin+CA(96,40,66,18,42,38)]],
+  ham:[["Heel out, toes up",FL+N([[80,32],[80,64]],[[80,64],[80,88],[80,110],[90,111]],[[80,64],[60,86],[42,108],[40,98]],[[80,36],[78,50],[76,62]])+H(80,22)],
+        ["Hips back, sweep down",FL+N([[92,62],[66,46]],[[92,62],[98,86],[92,110],[102,111]],[[92,62],[66,88],[44,108],[42,98]],[[66,48],[58,72],[50,96]])+H(58,40)+AR(104,56,118,56)]],
+  lat:[["Elbows on bench",`<rect class="pr" x="18" y="68" width="32" height="44" rx="3"/>`+FL+N([[78,82],[76,110],[104,111]],[[78,82],[70,52]],[[70,54],[50,66],[46,50]])+H(68,42)],
+       ["Hips back, chest sinks",`<rect class="pr" x="18" y="68" width="32" height="44" rx="3"/>`+FL+N([[100,92],[78,110],[104,111]],[[100,92],[66,72]],[[66,72],[50,66],[46,50]])+H(58,76)+AR(96,76,114,84)]],
+  glove:[["Hands set high, elbows down",MIRROR_POSE.set],["Lift: hands stay put",MIRROR_POSE.lift+CA(74,90,58,80,60,64)]],
+  stance:[["Wide base, hips centered",MIR+FL+F([[80,64],[94,88],[100,110],[90,111]])+N([[80,32],[80,64]],[[80,64],[66,88],[60,110],[50,111]],[[80,36],[92,50],[84,46]])+H(80,22)+AR(58,104,40,104)+AR(102,104,120,104)],["Lift without rocking back",MIRROR_POSE.lift]],
+  handbreak:[["Balance point",MIRROR_POSE.lift],["Leg starts down, then hands",MIRROR_POSE.load+AR(62,62,40,62)]],
+  weight:[["Pads + heel in the lift",MIRROR_POSE.lift],["Sink to heel, then inside",MIRROR_POSE.load+AR(90,104,78,104)]],
+  hiprot:[["Front side closed",MIRROR_POSE.load],["Open just before landing",MIRROR_POSE.ffs+CA(90,64,76,52,62,62)]],
+  armpath:[["Elbows lead",MIRROR_POSE.load],["Cocked at foot strike",MIRROR_POSE.ffs+AR(106,52,94,34)]],
+  landing:[["Toes slightly up",MIRROR_POSE.load],["Heel, pads, firm leg",MIRROR_POSE.ffs+AR(24,90,34,108)]],
+  headpath:[["Head behind hips",MIRROR_POSE.lift],["Still behind at landing",MIRROR_POSE.ffs+`<line class="ar" x1="74" y1="20" x2="74" y2="110" stroke-dasharray="4 4"/>`]],
   flush:[["Easy pace",FL+F([[80,62],[88,86],[96,108],[90,111]],[[80,34],[72,48],[70,60]])+N([[80,30],[80,62]],[[80,62],[70,86],[64,110],[56,111]],[[80,34],[88,48],[92,60]])+H(80,20)],
          ["Loose arms",FL+F([[80,62],[70,86],[64,110],[56,111]],[[80,34],[88,48],[92,60]])+N([[80,30],[80,62]],[[80,62],[88,86],[96,108],[90,111]],[[80,34],[72,48],[70,60]])+H(80,20)]],
   ytw:[["Y",TXT(6,14,"FACE DOWN")+N([[80,36],[80,74]],[[68,38],[92,38]],[[80,74],[74,110]],[[80,74],[86,110]],[[68,38],[50,8]],[[92,38],[110,8]])+H(80,26)],
@@ -710,6 +812,16 @@ const MORE = {
   load:{feel:"Drive-leg glute and quad loaded and ready to push.", miss:["Knee drifting past the toes","Weight rolling to the outside of the foot","Standing straight up"], q:"pitcher load position drill drive leg"},
   ffs:{feel:"A stretch across the torso as the hips open ahead of the chest.", miss:["Chest flying open with the hips","Throwing arm late (still down) at landing","Landing on the heel"], q:"pitcher front foot strike position drill mirror"},
   finish:{feel:"Trunk rotating fully over the front leg.", miss:["Stopping the arm at the chest","Kicking the back leg up on purpose","Standing straight up after release"], q:"pitcher follow through finish drill"},
+  ham:{feel:"Back of the front thigh, not the low back.", miss:["Rounding the back to reach lower","Locking the front knee hard","Bending at the waist instead of pushing the hips back"], q:"hamstring sweep mobility drill"},
+  lat:{feel:"Along the sides of the ribs and under the arms.", miss:["Arching the low back","Shrugging the shoulders","Forcing the chest down"], q:"bench prayer lat stretch"},
+  glove:{feel:"Calm, still hands while the leg moves.", miss:["Hands bobbing with the leg lift","Elbows flaring up and out","Hands held away from the body"], q:"pitching set position glove position"},
+  stance:{feel:"Even weight, ready to move toward the plate.", miss:["Feet too narrow","Drive knee locked","Rocking back toward the rubber on the lift"], q:"pitching stretch position stance width"},
+  handbreak:{feel:"Hands riding along, not leading.", miss:["Breaking at the top of the lift","Ripping the hands apart","Hands moving before the hips"], q:"pitching hand break timing drill"},
+  weight:{feel:"Pressure moving from the heel to the inside edge of the drive foot.", miss:["Weight on the toes in the lift","Rolling to the outside of the foot","Skipping the heel sink"], q:"pitching weight shift drive leg drill"},
+  hiprot:{feel:"Hips turning hard while the chest stays back.", miss:["Front hip opening early in the stride","Landing closed and stuck","Chest opening with the hips"], q:"pitching hip shoulder separation stride drill"},
+  armpath:{feel:"Arm arriving on time without rushing.", miss:["Arm already laid back at landing","Arm still down at landing","Hand leading instead of the elbow"], q:"pitching arm path cocked position at foot strike"},
+  landing:{feel:"Front leg firming up like a post.", miss:["Landing flat-footed or on the toes","Front knee keeps bending after landing","Stepping across the body"], q:"pitching front leg block landing drill"},
+  headpath:{feel:"Head quiet, staying back.", miss:["Head drifting forward in the stride","Head jerking toward first or third","Looking down at the feet"], q:"pitching head position stride drill"},
   flush:{feel:"Easy. You should be able to hold a conversation.", miss:["Turning it into a workout"], q:"pitcher post game recovery light cardio"},
   ytw:{feel:"Between and below the shoulder blades.", miss:["Shrugging toward the ears","Lifting with the low back","Going fast"], q:"prone Y T W exercise no weight"},
   breathe:{feel:"Belly rising first, shoulders and jaw loose.", miss:["Chest breathing","Scrolling your phone instead"], q:"legs up the wall breathing recovery"},
@@ -736,7 +848,7 @@ let sheetId = null;
 function openSheet(id){
   closeSheet(true); sheetId = id;
   const o = document.createElement("div"); o.className = "overlay sheetwrap"; o.id = "sheetWrap";
-  o.innerHTML = sheetHTML(ALL[id]); document.body.appendChild(o); document.body.style.overflow = "hidden";
+  o.innerHTML = sheetHTML(cur(id)); document.body.appendChild(o); document.body.style.overflow = "hidden";
   o.querySelector(".close").focus();
   o.addEventListener("click", ev => {
     if (ev.target === o) return closeSheet();
@@ -746,7 +858,7 @@ function openSheet(id){
     if (b.dataset.s==="done") { const e = entry(todayKey()); const on = !(e && e.done.includes(id)); closeSheet(); setDone(id, on); }
   });
 }
-function refreshSheet(){ const w = $("sheetWrap"); if (w && sheetId) { const sc = w.querySelector(".sheet").scrollTop; w.innerHTML = sheetHTML(ALL[sheetId]); w.querySelector(".sheet").scrollTop = sc; } }
+function refreshSheet(){ const w = $("sheetWrap"); if (w && sheetId) { const sc = w.querySelector(".sheet").scrollTop; w.innerHTML = sheetHTML(cur(sheetId)); w.querySelector(".sheet").scrollTop = sc; } }
 function closeSheet(silent){ const w = $("sheetWrap"); if (w) w.remove(); sheetId = null; document.body.style.overflow = ""; }
 document.addEventListener("keydown", ev => { if (ev.key==="Escape") closeSheet(); });
 
@@ -765,16 +877,16 @@ function blockStats(start, end, r){
   const tk = todayKey(), days = [];
   for (let i=0;i<BLOCK;i++) days.push(addDays(start,i));
   let done=0, cgs=0, pitched=0, recov=0, run=0, best=0, counted=0;
-  const per = Object.fromEntries(CORE.map(x=>[x.id,0]));
+  const REP = [...CORE, ...EXTRA]; const per = Object.fromEntries(REP.map(x=>[x.id,0]));
   days.forEach(k => { if (k > tk) return; counted++;
     const e = state.history[k];
-    if (e) CORE.forEach(x=>{ if (e.done.includes(x.id)) per[x.id]++; });
+    if (e) REP.forEach(x=>{ if (e.done.includes(x.id)) per[x.id]++; });
     if (e && isFull(e)) { done++; run++; best = Math.max(best, run); if (isCG(e)) cgs++; } else run = 0;
     if (e && e.pitched) { pitched++; if (bonusDone(e)===RECOVERY.length) recov++; } });
   const xpAt = k => { let kk = k; while (kk >= (Object.keys(r.xpByDay)[0]||kk) && r.xpByDay[kk]===undefined) kk = addDays(kk,-1); return r.xpByDay[kk]||0; };
   const last = end < tk ? end : tk;
   const v0 = mphFor(xpAt(addDays(start,-1))), v1 = mphFor(xpAt(last));
-  const skip = CORE.map(x=>[x, per[x.id]]).sort((a,b)=>a[1]-b[1])[0];
+  const skip = coreFor(todayPhase()).map(x=>[x, per[x.id]]).filter(z=>z[1]>0||CORE.includes(z[0])).sort((a,b)=>a[1]-b[1])[0];
   return {days, done, cgs, pitched, recov, best, counted, per, v0, v1, skip, pct: Math.round(done/BLOCK*100)};
 }
 const nice = k => parseKey(k).toLocaleDateString(undefined,{month:"short", day:"numeric"});
@@ -816,8 +928,8 @@ async function drawReport(b, preview){
     ctx.fillStyle = C.muted; ctx.font = `700 26px ${LAB}`; spaced(ctx, l, x+tw/2, 1148, 3, "center"); ctx.textAlign = "left"; });
   // per exercise bars
   ctx.fillStyle = C.muted; ctx.font = `700 30px ${LAB}`; spaced(ctx, "DAYS EACH EXERCISE WAS DONE", 80, 1245, 5);
-  CORE.forEach((x,i) => { const col = i%3, row = Math.floor(i/3), cw = (W-160-40)/3, bx = 80 + col*(cw+20), by = 1280 + row*110;
-    ctx.fillStyle = C.chalk; ctx.font = `600 28px ${LAB}`; let lbl = SHORT[x.id] || x.name; while (ctx.measureText(lbl).width > cw-60 && lbl.length>4) lbl = lbl.slice(0,-2)+"…";
+  coreFor(todayPhase()).slice(0,12).forEach((x,i) => { const col = i%3, row = Math.floor(i/3), cw = (W-160-40)/3, bx = 80 + col*(cw+20), by = 1280 + row*110;
+    ctx.fillStyle = C.chalk; ctx.font = `600 28px ${LAB}`; let lbl = SHORT[x.id] || SHORT_X[x.id] || x.name; while (ctx.measureText(lbl).width > cw-60 && lbl.length>4) lbl = lbl.slice(0,-2)+"…";
     ctx.fillText(lbl, bx, by+28); ctx.fillStyle = C.muted; ctx.textAlign = "right"; ctx.fillText(String(s.per[x.id]), bx+cw, by+28); ctx.textAlign = "left";
     rr(ctx,bx,by+44,cw,16,8); ctx.fillStyle = C.panel2; ctx.fill();
     const w = cw * s.per[x.id]/BLOCK; if (w>0){ rr(ctx,bx,by+44,Math.max(16,w),16,8); ctx.fillStyle = s.per[x.id] >= BLOCK*0.7 ? C.grass : C.amber; ctx.fill(); } });
@@ -885,7 +997,7 @@ function celebrate(before, after, title){
 }
 
 function tickTimer(id){
-  const x = ALL[id], t = timers[id]; if (!t || !t.run) return;
+  const x = cur(id), t = timers[id]; if (!t || !t.run) return;
   const now = performance.now(); t.left = Math.max(0, t.left - (now - t.last)/1000); t.last = now;
   const half = x.secs/2;
   if (x.sides) { const prev = t.cue; t.cue = t.left > half ? (x.sideWord ? "Round 1" : "Side 1") : (x.sideWord ? "Round 2" : "Switch sides"); if (prev && prev!==t.cue) beep(); }
@@ -895,7 +1007,7 @@ function tickTimer(id){
   requestAnimationFrame(()=>tickTimer(id));
 }
 function toggleTimer(id){
-  const t = timers[id] || (timers[id] = {left: ALL[id].secs, run:false, cue:""});
+  const t = timers[id] || (timers[id] = {left: cur(id).secs, run:false, cue:""});
   t.run = !t.run; t.last = performance.now(); renderToday(); refreshSheet(); if (t.run) { beep(); tickTimer(id); }
 }
 function onListClick(ev){
